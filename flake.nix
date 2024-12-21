@@ -12,7 +12,7 @@
         };
 
         grammars = with pkgs.tree-sitter.builtGrammars; [
-          tree-sitter-solidity
+          tree-sitter-python
         ];
 
         # Container for the source packages
