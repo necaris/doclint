@@ -22,7 +22,7 @@ def setup_llm():
         model = ChatOllama(model="llama3.2")
 
     try:
-        model.invoke("Are you there, Meta? It's me, Doclint.")
+        print(model.invoke("Are you there, LLM? It's me, Doclint."))
     except Exception as e:
         raise AssertionError(
             "LLM could not be connected to. Do you have Anthropic or Ollama set up?"
@@ -33,6 +33,19 @@ def setup_llm():
 
 def main():
     setup_llm()
+    # 1. Parse file using tree sitter
+    # 2. Extract doc-ish comments
+    # 3. Extract function / class the doc refers to
+    # 4. Given the function as context, score the doc comment on
+    #   - general guidelines (TODO: import some for the prompt)
+    #   - describing the *why* vs the *what* (TODO: this should be something tunable)
+    #   - relevance to the function it's attached to (comment drift)
+    # 5. Extract functions / comments *touched by a diff* and run the above
+    # 6. Explain the whole diff
+    # 6. Expand to more languages
+    # 7. Package up as a GHA / Pre-commit hook / etc
+    #   - Provide configurable models
+    #   - Tunables as above
     task = cf.Task(
         objective="Write a poem about the provided topic",
         instructions="Write four lines that rhyme",
