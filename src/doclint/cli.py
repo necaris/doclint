@@ -1,3 +1,4 @@
+import argparse
 import os
 
 # TODO: Investigate lighter-weight control flow
@@ -46,13 +47,24 @@ def main():
     # 7. Package up as a GHA / Pre-commit hook / etc
     #   - Provide configurable models
     #   - Tunables as above
-    task = cf.Task(
-        objective="Write a poem about the provided topic",
-        instructions="Write four lines that rhyme",
-        context={"topic": "AI"},
-    )
-    print(task.run())
+    for doc, definition in captures:
+        task = cf.Task(
+            objective="Assess whether the documentation provides sufficient context",
+            instructions=(
+                "Critique the doc as it relates to the definition. "
+                "Provide a score from 1 to 10. "
+                "A doc that describes the definition but provides no additional information beyond a description of the code should receive a score of 1. "
+                "Additional information as to why the code is written a certain way should result in a higher score."
+            ),
+            context={"doc": doc, "definition": definition},
+            result_type=int,
+        )
+        print(task.run())
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-f", "--file")
+    parser.add_argument("-r", "--repo")
+    parser.add_argument("-d", "--diff-range")
+    main(parser.parse_args())
