@@ -11,3 +11,4 @@ wheels/
 
 # Configuration
 .envrc
+.direnv
