@@ -1,8 +1,32 @@
 import argparse
 import os
+import pathlib
+import subprocess
 
-# TODO: Investigate lighter-weight control flow
+import unidiff
+import tree_sitter
+import tree_sitter_python
 import controlflow as cf
+
+# Set up a constant for the Python language instance exposed by Tree-Sitter
+# Creates a `PY_LANGUAGE` module-level variable
+PY_LANGUAGE = tree_sitter.Language(tree_sitter_python.language())
+PY_PARSER = tree_sitter.Parser(PY_LANGUAGE)
+
+"""Construct a query from our custom file."""
+PY_QUERY = tree_sitter.Query(
+    PY_LANGUAGE,
+    (pathlib.Path.cwd() / "src" / "queries" / "docstring.py.scm").read_text(),
+)
+
+
+def parse_whole_file(path: str | pathlib.Path):
+    with open(path, "rb") as f:
+        tree = PY_PARSER.parse(f.read())
+    for _, mtch in PY_QUERY.matches(tree.root_node):
+        doc = b"\n".join(n.text for n in mtch["doc"])
+        definition = mtch["definition"][0].text
+        yield doc, definition
 
 
 def setup_llm():
@@ -32,12 +56,27 @@ def setup_llm():
     cf.defaults.model = model
 
 
-def main():
+def main(opts: argparse.Namespace):
+    if opts.file:
+        captures = parse_whole_file(opts.file)
+    elif opts.repo and opts.diff_range:
+        output = subprocess.run(
+            ["git", "diff", "-p", opts.diff_range],
+            cwd=opts.repo,
+            capture_output=True,
+            text=True,
+        )
+        diff = unidiff.PatchSet.from_string(output.stdout)
+        print(diff.modified_files)
+        raise AssertionError("Diff logic not implemented yet.")
+    else:
+        raise AssertionError("Need either a file or a diff to parse.")
+
     setup_llm()
-    # 1. Parse file using tree sitter
     # 2. Extract doc-ish comments
-    # 3. Extract function / class the doc refers to
-    # 4. Given the function as context, score the doc comment on
+    #  - i.e. capture a function / class / module body
+    #  - capture any docstrings adjacent to definition (e.g. strings or blocks of comments after (for Python))
+    # 4. Given the function body as context, score the doc comment on
     #   - general guidelines (TODO: import some for the prompt)
     #   - describing the *why* vs the *what* (TODO: this should be something tunable)
     #   - relevance to the function it's attached to (comment drift)
