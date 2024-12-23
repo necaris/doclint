@@ -1,7 +1,9 @@
 {
   inputs = {
     utils.url = "github:numtide/flake-utils";
-    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+    # NOTE: We need to use tree-sitter <0.24 (as contained in this release) because otherwise
+    # the grammar packages lag behind and can't be picked up
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
   };
 
   outputs = { self, nixpkgs, utils }:
@@ -34,7 +36,6 @@
 
           # Decorative prompt override so we know when we're in a dev shell
           shellHook = ''
-            export PS1="[dev] $PS1"
             export TREE_SITTER_DIR=${tree-sitter-config}
           '';
         };
