@@ -6,7 +6,7 @@
    (assignment
      left: (identifier) @name)) @definition
 
- (#strip! @doc "^#\\s*")
+ (#strip! @doc "^\\s*#\\s*")
  (#select-adjacent! @doc @definition)) @documented
 
 ;; TODO: Module-level docstring
