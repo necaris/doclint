@@ -1,32 +1,11 @@
 import argparse
 import os
-import pathlib
 import subprocess
 
 import unidiff
-import tree_sitter
-import tree_sitter_python
 import controlflow as cf
 
-# Set up a constant for the Python language instance exposed by Tree-Sitter
-# Creates a `PY_LANGUAGE` module-level variable
-PY_LANGUAGE = tree_sitter.Language(tree_sitter_python.language())
-PY_PARSER = tree_sitter.Parser(PY_LANGUAGE)
-
-"""Construct a query from our custom file."""
-PY_QUERY = tree_sitter.Query(
-    PY_LANGUAGE,
-    (pathlib.Path.cwd() / "src" / "queries" / "docstring.py.scm").read_text(),
-)
-
-
-def parse_whole_file(path: str | pathlib.Path):
-    with open(path, "rb") as f:
-        tree = PY_PARSER.parse(f.read())
-    for _, mtch in PY_QUERY.matches(tree.root_node):
-        doc = b"\n".join(n.text for n in mtch["doc"])
-        definition = mtch["definition"][0].text
-        yield doc, definition
+from . import extractor
 
 
 def setup_llm():
@@ -58,7 +37,7 @@ def setup_llm():
 
 def main(opts: argparse.Namespace):
     if opts.file:
-        captures = parse_whole_file(opts.file)
+        captures = extractor.definitions_from_file(opts.file)
     elif opts.repo and opts.diff_range:
         output = subprocess.run(
             ["git", "diff", "-p", opts.diff_range],
@@ -86,7 +65,9 @@ def main(opts: argparse.Namespace):
     # 7. Package up as a GHA / Pre-commit hook / etc
     #   - Provide configurable models
     #   - Tunables as above
-    for doc, definition in captures:
+    for doc, definition, _ in captures:
+        print(doc)
+        print(definition)
         task = cf.Task(
             objective="Assess whether the documentation provides sufficient context",
             instructions=(
